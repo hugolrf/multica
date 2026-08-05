@@ -10,3 +10,11 @@ export { CommentInput } from "./comment-input";
 export { ReplyInput } from "./reply-input";
 export { IssueMentionCard } from "./issue-mention-card";
 export { IssueChip } from "./issue-chip";
+// Host-app injected menu extras (desktop-only "Diff" modal, etc.). See
+// ../actions/issue-actions-extras — provider is null-safe on web.
+export {
+  IssueActionsExtraItemsProvider,
+  useIssueActionsExtraItems,
+  type IssueActionsExtraContext,
+} from "../actions/issue-actions-extras";
+export type { MenuPrimitives } from "../actions/issue-actions-menu-items";

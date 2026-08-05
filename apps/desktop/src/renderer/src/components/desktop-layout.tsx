@@ -34,6 +34,7 @@ import { TabBar } from "./tab-bar";
 import { TabContent } from "./tab-content";
 import { WindowOverlay } from "./window-overlay";
 import { WindowToolbar, WINDOW_TOOLBAR_CLEARANCE } from "./window-toolbar";
+import { DesktopDiffProvider } from "@/platform/diff-provider";
 
 const TOP_BAR_HEIGHT_CLASS = "h-12";
 const toolbarMotion = {
@@ -229,6 +230,7 @@ export function DesktopShell() {
           window-level overlay (new-workspace flow) triggered by
           IndexRedirect, not a route. */}
       <WorkspaceSlugProvider slug={slug}>
+        <DesktopDiffProvider>
         <DesktopInboxBridge />
         <div className="flex h-screen bg-app-shell">
           {/* bg-app-shell is the wrapper's non-inset fill, so it also owns the
@@ -268,6 +270,7 @@ export function DesktopShell() {
         {slug && <ModalRegistry />}
         {slug && <SearchCommand />}
         <WindowOverlay />
+        </DesktopDiffProvider>
       </WorkspaceSlugProvider>
     </DesktopNavigationProvider>
   );
