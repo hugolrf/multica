@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local",
+    "requireCommit": false
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.multica.ai",
+        "EXPO_PUBLIC_WEB_URL": "https://multica.ai",
+        "EXPO_BUNDLE_IDENTIFIER_PROD": "me.fourti.multica"
+      }
+    },
+    "simulator": {
+      "distribution": "internal",
+      "ios": { "simulator": true },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.multica.ai",
+        "EXPO_PUBLIC_WEB_URL": "https://multica.ai",
+        "EXPO_BUNDLE_IDENTIFIER_PROD": "me.fourti.multica"
+      }
+    }
+  }
+}
