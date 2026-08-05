@@ -74,6 +74,7 @@ data/
 .kilo
 .idea
 .gstack/
+apps/desktop/.env.local
 
 # Python (agent tooling)
 __pycache__/
