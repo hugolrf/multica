@@ -47,6 +47,7 @@ import {
 import { copyText } from "@multica/ui/lib/clipboard";
 import type { UseIssueActionsResult } from "./use-issue-actions";
 import { useT } from "../../i18n";
+import { useIssueActionsExtraItems } from "./issue-actions-extras";
 
 // Both Dropdown and Context menu wrappers expose an API-compatible surface
 // (variant, inset, onClick, etc.). We bundle the primitives we need into a
@@ -102,6 +103,9 @@ export function IssueActionsMenuItems({
   onDeletedFallbackPath,
 }: IssueActionsMenuItemsProps) {
   const { t } = useT("issues");
+  // Host-app injected extras (e.g. desktop-only "Diff"). Null on web.
+  const renderExtraItems = useIssueActionsExtraItems();
+  console.warn("[DIFFDBG] menu-items renderExtraItems =", renderExtraItems === null ? "NULL(no provider)" : typeof renderExtraItems);
   const {
     isPinned,
     updateField,
@@ -312,6 +316,13 @@ export function IssueActionsMenuItems({
           </P.Item>
         </P.SubContent>
       </P.Sub>
+
+      {renderExtraItems ? (
+        <>
+          <P.Separator />
+          {renderExtraItems({ issue, primitives: P })}
+        </>
+      ) : null}
 
       <P.Separator />
 

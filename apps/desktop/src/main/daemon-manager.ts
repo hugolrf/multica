@@ -391,6 +391,9 @@ async function fetchHealth(): Promise<DaemonStatus> {
       : 0,
     profile: active.name,
     serverUrl: data.server_url,
+    // The renderer needs this to reach the daemon's local endpoints (the diff
+    // review modal); the port is derived from the profile, so it can't guess.
+    healthPort: active.port,
     externallyManaged,
   };
 }

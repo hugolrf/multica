@@ -23,6 +23,7 @@ import {
 import { TabBar } from "./tab-bar";
 import { TabContent } from "./tab-content";
 import { WindowOverlay } from "./window-overlay";
+import { DesktopDiffProvider } from "@/platform/diff-provider";
 
 const TOP_BAR_HEIGHT_CLASS = "h-12";
 const WINDOW_TOOLBAR_CLEARANCE = 184;
@@ -226,6 +227,7 @@ export function DesktopShell() {
           users see the window-level overlay (new-workspace flow)
           triggered by IndexRedirect, not a route. */}
       <WorkspaceSlugProvider slug={slug}>
+        <DesktopDiffProvider>
         <DesktopInboxBridge />
         <div className="flex h-screen bg-app-shell">
           <SidebarProvider className="flex-1 bg-app-shell">
@@ -245,6 +247,7 @@ export function DesktopShell() {
         {slug && <ModalRegistry />}
         {slug && <SearchCommand />}
         <WindowOverlay />
+        </DesktopDiffProvider>
       </WorkspaceSlugProvider>
     </DesktopNavigationProvider>
   );

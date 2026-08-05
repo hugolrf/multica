@@ -22,6 +22,9 @@ export interface DaemonStatus {
   profile?: string;
   /** Backend URL the daemon connects to. */
   serverUrl?: string;
+  /** Local HTTP port the daemon serves /health (and the diff endpoints) on.
+   *  Derived from the CLI profile, so the renderer cannot guess it. */
+  healthPort?: number;
   /**
    * True when a daemon is running but in an environment the app can't control
    * — its reported OS differs from the desktop host's (e.g. a Linux daemon
