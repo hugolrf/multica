@@ -383,6 +383,12 @@ func (d *Daemon) serveHealth(ctx context.Context, ln net.Listener, startedAt tim
 	mux.HandleFunc("/health", d.healthHandler(startedAt))
 	mux.HandleFunc("/shutdown", d.shutdownHandler())
 	mux.HandleFunc("/repo/checkout", d.repoCheckoutHandler())
+	// Local diff review: this machine holds the clones, so it computes the
+	// diff for any client (desktop modal, or the web app through a tunnel).
+	mux.HandleFunc("/diff/sources", d.diffSourcesHandler())
+	mux.HandleFunc("/diff/files", d.diffFilesHandler())
+	mux.HandleFunc("/diff/open", d.diffOpenHandler())
+	mux.HandleFunc("/diff/parse", d.diffParseHandler())
 
 	srv := &http.Server{Handler: mux}
 

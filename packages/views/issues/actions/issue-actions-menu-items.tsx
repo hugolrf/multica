@@ -51,6 +51,7 @@ import { copyText } from "@multica/ui/lib/clipboard";
 import type { UseIssueActionsResult } from "./use-issue-actions";
 import { PluginHookMenuItems, PluginModalMenuItems } from "../../plugins";
 import { useT } from "../../i18n";
+import { useIssueActionsExtraItems } from "./issue-actions-extras";
 
 // Both Dropdown and Context menu wrappers expose an API-compatible surface
 // (variant, inset, onClick, etc.). We bundle the primitives we need into a
@@ -109,6 +110,9 @@ export function IssueActionsMenuItems({
   const wsId = useWorkspaceId();
   const statusOptions = useStatusOptions(wsId);
   const { categoryOf, colorOf } = useIssueStatuses(wsId);
+  // Host-app injected extras (e.g. desktop-only "Diff"). Null on web.
+  const renderExtraItems = useIssueActionsExtraItems();
+  console.warn("[DIFFDBG] menu-items renderExtraItems =", renderExtraItems === null ? "NULL(no provider)" : typeof renderExtraItems);
   const {
     isPinned,
     updateField,
@@ -364,6 +368,12 @@ export function IssueActionsMenuItems({
           party's UI taking over the screen, so it opens because a person chose
           it, never on the plugin's own initiative. */}
       <PluginModalMenuItems issueId={issue.id} Item={P.Item} />
+      {renderExtraItems ? (
+        <>
+          <P.Separator />
+          {renderExtraItems({ issue, primitives: P })}
+        </>
+      ) : null}
 
       <P.Separator />
 
