@@ -1,0 +1,87 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork-main
+        uses: actions/checkout@v4
+        with:
+          ref: fork-main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Sync, verify and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "multica-fork-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/multica-ai/multica.git
+          git fetch upstream main
+          git fetch --tags --force origin
+
+          if [ "$(git merge-base fork-main upstream/main)" = "$(git rev-parse upstream/main)" ]; then
+            echo "Upstream sem novidades; nada a sincronizar."
+            exit 0
+          fi
+
+          today="$(date -u +%F)"
+
+          if ! git rebase upstream/main; then
+            conflicts="$(git diff --name-only --diff-filter=U || true)"
+            git rebase --abort || true
+            printf 'Rebase de fork-main sobre upstream/main falhou por conflito.\n\nArquivos em conflito:\n%s\n\nResolver manualmente e disparar o release (release-fork-desktop.yml).\n' "$conflicts" \
+              | gh issue create --title "Sync upstream: conflito ($today)" --body-file -
+            echo "Conflito no rebase; issue aberta." >&2
+            exit 1
+          fi
+
+          ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile
+
+          if ! pnpm --dir apps/desktop typecheck; then
+            printf 'Rebase de fork-main sobre upstream/main foi limpo, mas o typecheck do desktop quebrou.\n\nRevisar os patches do fork contra o upstream novo e disparar o release manualmente (release-fork-desktop.yml).\n' \
+              | gh issue create --title "Sync upstream: typecheck quebrado ($today)" --body-file -
+            echo "Typecheck falhou apos rebase limpo; issue aberta." >&2
+            exit 1
+          fi
+
+          git push --force-with-lease origin fork-main
+
+          patch="$(date -u +%-d%H%M)"
+          version="2026.$(date -u +%-m).${patch}"
+          while git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; do
+            patch="$((patch + 1))"
+            version="2026.$(date -u +%-m).${patch}"
+          done
+          tag="v${version}"
+
+          git tag "$tag"
+          git push origin "refs/tags/${tag}"
+
+          gh workflow run release-fork-desktop.yml --ref "$tag"
+
+          echo "Sync limpo: fork-main atualizada, tag ${tag} publicada e build disparado."
