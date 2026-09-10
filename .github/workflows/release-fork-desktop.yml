@@ -10,8 +10,16 @@ permissions:
   contents: write
 
 jobs:
-  desktop-windows:
-    runs-on: windows-latest
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+          - os: macos-latest
+            target: mac
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,11 +44,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Package Desktop installers (win)
+      - name: Package Desktop installers (${{ matrix.target }})
         working-directory: apps/desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           MAIN_VITE_UPDATE_TOKEN: ${{ secrets.APP_UPDATE_TOKEN }}
-        run: node scripts/package.mjs --win --x64 --arm64 --publish always
+        run: node scripts/package.mjs --${{ matrix.target }} --x64 --arm64 --publish always
