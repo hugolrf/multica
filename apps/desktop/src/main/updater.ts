@@ -51,6 +51,23 @@ export function configureMacX64UpdateChannel(
 // arm64 feed and runtime path remain unchanged.
 configureMacX64UpdateChannel(autoUpdater);
 
+const updateToken = (
+  import.meta.env as ImportMetaEnv & {
+    readonly MAIN_VITE_UPDATE_TOKEN?: string;
+  }
+).MAIN_VITE_UPDATE_TOKEN;
+
+if (updateToken) {
+  autoUpdater.setFeedURL({
+    provider: "github",
+    owner: "hugolrf",
+    repo: "multica",
+    private: true,
+    token: updateToken,
+  });
+  autoUpdater.addAuthHeader(`Bearer ${updateToken}`);
+}
+
 const STARTUP_CHECK_DELAY_MS = 5_000;
 const PERIODIC_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 

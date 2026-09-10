@@ -6,6 +6,11 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    define: {
+      "import.meta.env.MAIN_VITE_UPDATE_TOKEN": JSON.stringify(
+        process.env.MAIN_VITE_UPDATE_TOKEN ?? "",
+      ),
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
