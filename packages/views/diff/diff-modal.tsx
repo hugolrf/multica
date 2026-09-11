@@ -26,7 +26,11 @@ import {
 } from "./diff-view";
 import { ReviewBar, ReviewComposer } from "./diff-review";
 import type { DiffReviewDraft } from "./review-types";
-import { useDiffClient, useDiffClientReady } from "./diff-context";
+import {
+  useDiffClient,
+  useDiffClientReady,
+  useDiffOpenVscodeRemote,
+} from "./diff-context";
 import { useDiffFamily } from "./use-diff-family";
 import { composeReviewMarkdown } from "./compose-review";
 import { useT } from "../i18n";
@@ -67,6 +71,7 @@ function SourceSection({
   const { t } = useT("diff");
   const [busy, setBusy] = useState<null | "gitkraken" | "vscode">(null);
   const client = useDiffClient();
+  const openVscodeRemote = useDiffOpenVscodeRemote();
 
   const load = useCallback(async () => {
     if (fileset || loading) return;
@@ -95,8 +100,14 @@ function SourceSection({
   const openIn = async (tool: "gitkraken" | "vscode") => {
     setBusy(tool);
     try {
-      await client.open({ workdir: source.workdir, repo_path: source.repo_path, tool });
-      toast.success(tool === "gitkraken" ? t(($) => $.opened_gitkraken) : t(($) => $.opened_vscode));
+      if (tool === "vscode" && openVscodeRemote) {
+        const err = await openVscodeRemote(source.workdir);
+        if (err) throw new Error(err);
+        toast.success(t(($) => $.opened_vscode));
+      } else {
+        await client.open({ workdir: source.workdir, repo_path: source.repo_path, tool });
+        toast.success(tool === "gitkraken" ? t(($) => $.opened_gitkraken) : t(($) => $.opened_vscode));
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
