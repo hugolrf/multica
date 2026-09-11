@@ -2,9 +2,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { IssueActionsExtraItemsProvider } from "@multica/views/issues/components";
 import { DiffClientProvider, DiffMenuItem, DiffModal } from "@multica/views/diff";
 
-/** Fall back to the documented default until the daemon reports its port. */
-const DEFAULT_HEALTH_PORT = 19514;
-
 /**
  * Desktop wiring for the diff review feature.
  *
@@ -15,7 +12,8 @@ const DEFAULT_HEALTH_PORT = 19514;
  * The port is derived from the CLI profile, so the renderer has to ask the main
  * process for it. That answer is only available once the daemon reports
  * "running", which can happen after this component mounts (the app often starts
- * before the daemon is up), hence the retry.
+ * before the daemon is up), hence the retry. Until the real port is known the
+ * provider reports `ready={false}` so the modal never posts to a guessed port.
  */
 export function DesktopDiffProvider({ children }: { children: ReactNode }) {
   const [port, setPort] = useState<number | null>(null);
@@ -50,9 +48,11 @@ export function DesktopDiffProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  console.warn("[DIFFDBG] DesktopDiffProvider render, port =", port);
   return (
-    <DiffClientProvider baseUrl={`http://127.0.0.1:${port ?? DEFAULT_HEALTH_PORT}`}>
+    <DiffClientProvider
+      baseUrl={port ? `http://127.0.0.1:${port}` : "http://127.0.0.1"}
+      ready={port != null}
+    >
       <IssueActionsExtraItemsProvider render={(ctx) => <DiffMenuItem {...ctx} />}>
         {children}
         <DiffModal />
