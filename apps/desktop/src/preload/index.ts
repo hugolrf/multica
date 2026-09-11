@@ -265,6 +265,10 @@ const daemonAPI = {
     ipcRenderer.invoke("daemon:get-host-name"),
   getDiffBaseUrl: (): Promise<string | null> =>
     ipcRenderer.invoke("daemon:get-diff-base-url"),
+  openDiffVscodeRemote: (
+    workdir: string,
+  ): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("daemon:open-diff-vscode-remote", workdir),
   onStatusChange: (callback: (status: DaemonStatus) => void) => {
     const handler = (_: unknown, status: DaemonStatus) => callback(status);
     ipcRenderer.on("daemon:status", handler);
