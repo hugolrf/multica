@@ -1390,32 +1390,38 @@ export function setupDaemonManager(
     if (fromEnv) return fromEnv;
     try {
       const raw = await readFile(join(homedir(), ".multica", "diff-daemon-url"), "utf-8");
-      return raw.trim() || null;
+      const configured = raw.trim();
+      if (configured) return configured;
     } catch {
-      return null;
+      // no override file — fall through to the baked default
     }
+    // Fork default: a non-mac client reaches the host Mac's daemon over the
+    // tailnet, so the diff works with zero setup. A ~/.multica file overrides.
+    if (process.platform !== "darwin") return "http://100.67.92.45:19681";
+    return null;
   });
   ipcMain.handle(
     "daemon:open-diff-vscode-remote",
     async (_e, workdir: string) => {
+      let prefix = "";
       try {
-        const prefix = (
+        prefix = (
           await readFile(
             join(homedir(), ".multica", "diff-vscode-remote"),
             "utf-8",
           )
         ).trim();
-        if (!prefix) {
-          return { ok: false, error: "Configure ~/.multica/diff-vscode-remote" };
-        }
-        return openVscodeRemoteSafely(prefix.replace(/\/$/, "") + workdir);
       } catch {
-        return {
-          ok: false,
-          error:
-            "Configure ~/.multica/diff-vscode-remote com o prefixo do tunnel",
-        };
+        // no override file — fall through to the baked default
       }
+      // Fork default: open the host Mac's VS Code tunnel from a non-mac client.
+      if (!prefix && process.platform !== "darwin") {
+        prefix = "vscode-insiders://vscode-remote/tunnel+macbook-m4";
+      }
+      if (!prefix) {
+        return { ok: false, error: "Configure ~/.multica/diff-vscode-remote" };
+      }
+      return openVscodeRemoteSafely(prefix.replace(/\/$/, "") + workdir);
     },
   );
   ipcMain.handle(
