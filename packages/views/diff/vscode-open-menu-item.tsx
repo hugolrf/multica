@@ -50,8 +50,9 @@ export function VscodeOpenMenuItem({
           if (primary?.workdir) {
             // primary.workdir is the repo checkout (…/workdir/<repo>); open the
             // run's workdir root so every repo of that run is visible.
-            const match = primary.workdir.match(/^(.*\/workdir)(?:\/[^/]+)?$/);
-            target = match ? match[1] : primary.workdir;
+            const wd = primary.workdir;
+            const cut = wd.lastIndexOf("/workdir/");
+            target = cut >= 0 ? wd.slice(0, cut + "/workdir".length) : wd;
           }
         } catch {
           // fall through to the newest run's workdir
