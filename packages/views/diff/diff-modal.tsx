@@ -26,7 +26,7 @@ import {
 } from "./diff-view";
 import { ReviewBar, ReviewComposer } from "./diff-review";
 import type { DiffReviewDraft } from "./review-types";
-import { useDiffClient } from "./diff-context";
+import { useDiffClient, useDiffClientReady } from "./diff-context";
 import { useDiffFamily } from "./use-diff-family";
 import { composeReviewMarkdown } from "./compose-review";
 import { useT } from "../i18n";
@@ -205,6 +205,7 @@ function DiffModalBody({ issueId, onClose }: { issueId: string; onClose: () => v
   const workspaceId = workspace?.id ?? null;
   const { t } = useT("diff");
   const client = useDiffClient();
+  const ready = useDiffClientReady();
   const family = useDiffFamily(issueId);
   const [mode, setMode] = useState<DiffMode>("inline");
   const [tab, setTab] = useState<"diff" | "evidence">("diff");
@@ -237,7 +238,7 @@ function DiffModalBody({ issueId, onClose }: { issueId: string; onClose: () => v
   // clones, so it is the only component that can see them.
   const sourcesQuery = useQuery({
     queryKey: ["diff", "sources", workspaceId, family.data?.root.id],
-    enabled: Boolean(workspaceId && family.data),
+    enabled: Boolean(workspaceId && family.data && ready),
     staleTime: 15_000,
     queryFn: () =>
       client.sources({
@@ -247,7 +248,7 @@ function DiffModalBody({ issueId, onClose }: { issueId: string; onClose: () => v
       }),
   });
 
-  const loading = family.isLoading || sourcesQuery.isLoading;
+  const loading = !ready || family.isLoading || sourcesQuery.isLoading;
   const queryError = family.error ?? sourcesQuery.error;
   const error = !workspaceId
     ? t(($) => $.no_workspace)
