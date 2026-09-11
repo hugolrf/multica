@@ -1384,6 +1384,16 @@ export function setupDaemonManager(
   // app-managed daemon is reporting a device name (e.g. the daemon runs
   // out-of-band in WSL2). See desktop-runtimes-page.tsx.
   ipcMain.handle("daemon:get-host-name", () => hostname());
+  ipcMain.handle("daemon:get-diff-base-url", async () => {
+    const fromEnv = process.env.MULTICA_DIFF_DAEMON_URL?.trim();
+    if (fromEnv) return fromEnv;
+    try {
+      const raw = await readFile(join(homedir(), ".multica", "diff-daemon-url"), "utf-8");
+      return raw.trim() || null;
+    } catch {
+      return null;
+    }
+  });
   ipcMain.handle(
     "daemon:sync-token",
     async (_event, token: string, userId: string) => {
