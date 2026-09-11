@@ -135,6 +135,9 @@ interface DaemonAPI {
   probeRuntimes: () => Promise<LocalRuntimeProbe>;
   getHostName: () => Promise<string>;
   getDiffBaseUrl: () => Promise<string | null>;
+  openDiffVscodeRemote: (
+    workdir: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
   onStatusChange: (callback: (status: DaemonStatus) => void) => () => void;
   setTargetApiUrl: (url: string) => Promise<void>;
   syncToken: (token: string, userId: string) => Promise<void>;
