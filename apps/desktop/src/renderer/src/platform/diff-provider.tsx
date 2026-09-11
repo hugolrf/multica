@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { IssueActionsExtraItemsProvider } from "@multica/views/issues/components";
-import { DiffClientProvider, DiffMenuItem, DiffModal } from "@multica/views/diff";
+import {
+  DiffClientProvider,
+  DiffMenuItem,
+  DiffModal,
+  VscodeOpenMenuItem,
+} from "@multica/views/diff";
 
 /**
  * Desktop wiring for the diff review feature.
@@ -95,7 +100,14 @@ export function DesktopDiffProvider({ children }: { children: ReactNode }) {
       ready={ready}
       openVscodeRemote={openVscodeRemote}
     >
-      <IssueActionsExtraItemsProvider render={(ctx) => <DiffMenuItem {...ctx} />}>
+      <IssueActionsExtraItemsProvider
+        render={(ctx) => (
+          <>
+            <DiffMenuItem {...ctx} />
+            <VscodeOpenMenuItem {...ctx} />
+          </>
+        )}
+      >
         {children}
         <DiffModal />
       </IssueActionsExtraItemsProvider>
