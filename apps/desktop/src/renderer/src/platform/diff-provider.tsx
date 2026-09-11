@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { IssueActionsExtraItemsProvider } from "@multica/views/issues/components";
 import { DiffClientProvider, DiffMenuItem, DiffModal } from "@multica/views/diff";
 
@@ -10,7 +10,11 @@ import { DiffClientProvider, DiffMenuItem, DiffModal } from "@multica/views/diff
  * run on another machine — e.g. this desktop is a Windows client and the clones
  * live on a Mac — point the diff at that machine's daemon instead by setting a
  * remote base URL: env `MULTICA_DIFF_DAEMON_URL` or a `~/.multica/diff-daemon-url`
- * file, typically a local port forwarded to the remote daemon over an SSH tunnel.
+ * file (the daemon reachable over the tailnet or an SSH tunnel).
+ *
+ * When remote, "Open in VS Code" must open on THIS machine over a tunnel (the
+ * daemon would open it on the remote host), so a remote opener is injected;
+ * it builds the URL from `~/.multica/diff-vscode-remote`.
  *
  * `ready={false}` holds the modal's queries until a usable URL is known, so it
  * never posts to a guessed port.
@@ -67,6 +71,17 @@ export function DesktopDiffProvider({ children }: { children: ReactNode }) {
     };
   }, [remoteUrl]);
 
+  const openVscodeRemote = useMemo(
+    () =>
+      remoteUrl
+        ? async (workdir: string): Promise<string | null> => {
+            const res = await window.daemonAPI.openDiffVscodeRemote(workdir);
+            return res.ok ? null : (res.error ?? "Falha ao abrir o VS Code");
+          }
+        : null,
+    [remoteUrl],
+  );
+
   const baseUrl = remoteUrl
     ? remoteUrl
     : port
@@ -75,7 +90,11 @@ export function DesktopDiffProvider({ children }: { children: ReactNode }) {
   const ready = remoteUrl ? true : remoteUrl === null && port != null;
 
   return (
-    <DiffClientProvider baseUrl={baseUrl} ready={ready}>
+    <DiffClientProvider
+      baseUrl={baseUrl}
+      ready={ready}
+      openVscodeRemote={openVscodeRemote}
+    >
       <IssueActionsExtraItemsProvider render={(ctx) => <DiffMenuItem {...ctx} />}>
         {children}
         <DiffModal />
