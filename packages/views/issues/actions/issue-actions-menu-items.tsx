@@ -112,7 +112,6 @@ export function IssueActionsMenuItems({
   const { categoryOf, colorOf } = useIssueStatuses(wsId);
   // Host-app injected extras (e.g. desktop-only "Diff"). Null on web.
   const renderExtraItems = useIssueActionsExtraItems();
-  console.warn("[DIFFDBG] menu-items renderExtraItems =", renderExtraItems === null ? "NULL(no provider)" : typeof renderExtraItems);
   const {
     isPinned,
     updateField,
