@@ -7,7 +7,6 @@
   "branches_other": "{{count}} branches",
   "building": "Building the diff…",
   "close": "Close",
-  "open_vscode": "Open in VS Code",
   "no_worktree": "No worktree on disk for this task",
   "comment": "Comment",
   "comment_hint": "Click to comment · Shift+click to extend",
