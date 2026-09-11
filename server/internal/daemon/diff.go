@@ -111,8 +111,9 @@ type candidate struct {
 	repo       string
 	branch     string
 	agentSlug  string
-	run        diffRunInput
-	forcedBase []string
+	run         diffRunInput
+	forcedBase  []string
+	familyStart string
 }
 
 const bigDiffFileCount = 150
@@ -124,12 +125,19 @@ func collectCandidates(ctx context.Context, req diffSourcesRequest) []candidate 
 	var out []candidate
 	seen := map[string]bool{}
 
+	// The run window is one reading of where a branch started. A long-lived task
+	// branch spans MANY runs, so the window must cover the whole family's span;
+	// a single run's start would collapse the diff to that run's commits alone
+	// (see forkPointByRun).
+	familyStart := earliestRunStart(req.Runs)
+
 	add := func(c candidate) {
 		key := c.repoPath + "::" + c.branch
 		if seen[key] {
 			return
 		}
 		seen[key] = true
+		c.familyStart = familyStart
 		out = append(out, c)
 	}
 
@@ -263,6 +271,31 @@ func runWindow(runs []diffRunInput) (time.Time, time.Time, bool) {
 	return starts[0], ends[len(ends)-1].Add(6 * time.Hour), true
 }
 
+// earliestRunStart is the earliest moment any of the family's runs began. It is
+// the inclusive edge of the run window used for base detection: the task's work
+// is everything committed since the family first ran, across every run.
+func earliestRunStart(runs []diffRunInput) string {
+	var best time.Time
+	bestStr := ""
+	for _, r := range runs {
+		for _, s := range []string{r.StartedAt, r.CreatedAt} {
+			if s == "" {
+				continue
+			}
+			t, err := time.Parse(time.RFC3339, s)
+			if err != nil {
+				continue
+			}
+			if bestStr == "" || t.Before(best) {
+				best = t
+				bestStr = s
+			}
+			break
+		}
+	}
+	return bestStr
+}
+
 // resolveCandidate detects the real base and summarizes the change. Returns
 // nil when there is nothing to review (or the repo is broken).
 func resolveCandidate(ctx context.Context, c candidate) *diffSource {
@@ -293,7 +326,10 @@ func resolveCandidate(ctx context.Context, c candidate) *diffSource {
 		// repo's other branches, and the run window. The one that yields FEWER
 		// commits wins — that is what makes a stale bare ref harmless.
 		byBranch := detectBranchBase(ctx, c.repoPath, c.branch)
-		runStart := c.run.StartedAt
+		runStart := c.familyStart
+		if runStart == "" {
+			runStart = c.run.StartedAt
+		}
 		if runStart == "" {
 			runStart = c.run.CreatedAt
 		}
