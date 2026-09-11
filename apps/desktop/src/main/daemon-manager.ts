@@ -23,6 +23,7 @@ import type {
 } from "../shared/daemon-types";
 import { daemonStatusAlive } from "../shared/daemon-types";
 import { ensureManagedCli, managedCliPath } from "./cli-bootstrap";
+import { openVscodeRemoteSafely } from "./external-url";
 import { decideVersionAction } from "./version-decision";
 import {
   deriveProfileName,
@@ -1394,6 +1395,29 @@ export function setupDaemonManager(
       return null;
     }
   });
+  ipcMain.handle(
+    "daemon:open-diff-vscode-remote",
+    async (_e, workdir: string) => {
+      try {
+        const prefix = (
+          await readFile(
+            join(homedir(), ".multica", "diff-vscode-remote"),
+            "utf-8",
+          )
+        ).trim();
+        if (!prefix) {
+          return { ok: false, error: "Configure ~/.multica/diff-vscode-remote" };
+        }
+        return openVscodeRemoteSafely(prefix.replace(/\/$/, "") + workdir);
+      } catch {
+        return {
+          ok: false,
+          error:
+            "Configure ~/.multica/diff-vscode-remote com o prefixo do tunnel",
+        };
+      }
+    },
+  );
   ipcMain.handle(
     "daemon:sync-token",
     async (_event, token: string, userId: string) => {
