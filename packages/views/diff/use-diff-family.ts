@@ -50,50 +50,53 @@ async function loadFamilyIssues(issueId: string): Promise<{ root: Issue; issues:
   return { root, issues };
 }
 
+/** Family + the runs/codes the daemon needs to resolve diff sources. */
+export async function loadDiffFamily(issueId: string): Promise<DiffFamily> {
+  const { root, issues } = await loadFamilyIssues(issueId);
+
+  const taskLists = await Promise.all(
+    issues.map(async (issue) => {
+      try {
+        return { issue, tasks: await api.listTasksByIssue(issue.id) };
+      } catch {
+        return { issue, tasks: [] };
+      }
+    }),
+  );
+
+  const runs: DiffRunInput[] = [];
+  for (const { issue, tasks } of taskLists) {
+    for (const task of tasks) {
+      runs.push({
+        run_id: task.id,
+        work_dir: task.work_dir ?? "",
+        status: task.status ?? "",
+        created_at: task.created_at ?? "",
+        started_at: task.started_at ?? "",
+        completed_at: task.completed_at ?? "",
+        agent_id: task.agent_id ?? "",
+        agent_name: "",
+        issue_id: issue.id,
+        issue_identifier: issue.identifier ?? "",
+        issue_title: issue.title ?? "",
+        issue_status: issue.status ?? "",
+      });
+    }
+  }
+
+  return {
+    root,
+    issues,
+    runs,
+    codes: extractTicketCodes(issues.map((i) => i.title ?? "")),
+  };
+}
+
 export function useDiffFamily(issueId: string | null) {
   return useQuery<DiffFamily>({
     queryKey: ["diff", "family", issueId],
     enabled: Boolean(issueId),
     staleTime: 30_000,
-    queryFn: async () => {
-      const { root, issues } = await loadFamilyIssues(issueId!);
-
-      const taskLists = await Promise.all(
-        issues.map(async (issue) => {
-          try {
-            return { issue, tasks: await api.listTasksByIssue(issue.id) };
-          } catch {
-            return { issue, tasks: [] };
-          }
-        }),
-      );
-
-      const runs: DiffRunInput[] = [];
-      for (const { issue, tasks } of taskLists) {
-        for (const task of tasks) {
-          runs.push({
-            run_id: task.id,
-            work_dir: task.work_dir ?? "",
-            status: task.status ?? "",
-            created_at: task.created_at ?? "",
-            started_at: task.started_at ?? "",
-            completed_at: task.completed_at ?? "",
-            agent_id: task.agent_id ?? "",
-            agent_name: "",
-            issue_id: issue.id,
-            issue_identifier: issue.identifier ?? "",
-            issue_title: issue.title ?? "",
-            issue_status: issue.status ?? "",
-          });
-        }
-      }
-
-      return {
-        root,
-        issues,
-        runs,
-        codes: extractTicketCodes(issues.map((i) => i.title ?? "")),
-      };
-    },
+    queryFn: () => loadDiffFamily(issueId!),
   });
 }
