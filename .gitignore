@@ -79,3 +79,4 @@ apps/desktop/.env.local
 # Python (agent tooling)
 __pycache__/
 *.pyc
+perf-report/
