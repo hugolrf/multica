@@ -36,6 +36,7 @@ protocols:
 asarUnpack:
   - resources/**
 mac:
+  identity: "Hugo Leonardo Ribeiro de Figueiredo (63NARQ2KXZ)"
   entitlementsInherit: build/entitlements.mac.plist
   target:
     - dmg

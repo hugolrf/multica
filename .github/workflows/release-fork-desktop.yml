@@ -49,6 +49,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.target == 'mac' && 'true' || 'false' }}
+          CSC_LINK: ${{ matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.target == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
           MAIN_VITE_UPDATE_TOKEN: ${{ secrets.APP_UPDATE_TOKEN }}
-        run: node scripts/package.mjs --${{ matrix.target }} --x64 --arm64 --publish always
+        shell: bash
+        run: |
+          extra=""
+          if [ "${{ matrix.target }}" = "mac" ] && [ -z "$CSC_LINK" ]; then
+            extra="-c.mac.identity=null"
+          fi
+          node scripts/package.mjs --${{ matrix.target }} --x64 --arm64 --publish always $extra
