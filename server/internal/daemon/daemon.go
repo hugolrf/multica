@@ -8445,6 +8445,15 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	if task.Agent != nil {
 		agentCustomEnv = task.Agent.CustomEnv
 	}
+	if runtime.GOOS != "windows" {
+		agentShell := os.Getenv("MULTICA_AGENT_SHELL")
+		if agentShell == "" {
+			agentShell = "/bin/bash"
+		}
+		if info, err := os.Stat(agentShell); err == nil && !info.IsDir() {
+			agentEnv["SHELL"] = agentShell
+		}
+	}
 	layerCustomEnvAndHermesHome(agentEnv, agentCustomEnv, env.HermesHome, d.logger)
 	if provider == "reasonix" {
 		reasonixStateHome, err := prepareReasonixTaskStateHome(d.cfg.Profile, task.RuntimeID, task.AgentID)
