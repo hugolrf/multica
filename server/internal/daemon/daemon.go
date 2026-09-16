@@ -8478,6 +8478,13 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	if err := configureCodexTaskShellEnvironment(provider, env.CodexHome, os.Environ(), agentEnv, agentCustomEnv, d.logger); err != nil {
 		return TaskResult{}, err
 	}
+	// Opt-in (MULTICA_ORCA_BRIDGE=1): borrow an Orca pane identity so the Orca
+	// app shows this run's agent status live. Applied after custom_env on
+	// purpose — the pane key is per-run and must win over any stale value an
+	// operator pinned in the agent's custom_env. See orca_bridge.go.
+	for k, v := range orcaBridgeEnv(ctx, env.WorkDir, provider, taskLog) {
+		agentEnv[k] = v
+	}
 	// The overlay is authoritative once built, so nothing on the command line
 	// may re-point HERMES_HOME out of it. Both argv regions are stripped
 	// together, against the same assembled argv the resolver read: a selection
