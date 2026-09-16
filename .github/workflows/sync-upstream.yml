@@ -20,6 +20,7 @@ jobs:
           ref: fork-main
           fetch-depth: 0
           persist-credentials: true
+          token: ${{ secrets.FORK_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -31,8 +32,8 @@ jobs:
 
       - name: Sync, verify and release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.FORK_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.FORK_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -53,18 +54,16 @@ jobs:
           if ! git rebase upstream/main; then
             conflicts="$(git diff --name-only --diff-filter=U || true)"
             git rebase --abort || true
-            printf 'Rebase de fork-main sobre upstream/main falhou por conflito.\n\nArquivos em conflito:\n%s\n\nResolver manualmente e disparar o release (release-fork-desktop.yml).\n' "$conflicts" \
-              | gh issue create --title "Sync upstream: conflito ($today)" --body-file -
-            echo "Conflito no rebase; issue aberta." >&2
+            printf 'SYNC_FAIL_REASON=Conflito no rebase de fork-main sobre upstream/main (%s). Arquivos: %s\n' "$today" "$(echo "$conflicts" | tr '\n' ' ')" >> "$GITHUB_ENV"
+            echo "Conflito no rebase em: $conflicts" >&2
             exit 1
           fi
 
           ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile
 
           if ! pnpm --dir apps/desktop typecheck; then
-            printf 'Rebase de fork-main sobre upstream/main foi limpo, mas o typecheck do desktop quebrou.\n\nRevisar os patches do fork contra o upstream novo e disparar o release manualmente (release-fork-desktop.yml).\n' \
-              | gh issue create --title "Sync upstream: typecheck quebrado ($today)" --body-file -
-            echo "Typecheck falhou apos rebase limpo; issue aberta." >&2
+            printf 'SYNC_FAIL_REASON=Rebase limpo (%s), mas o typecheck do desktop quebrou.\n' "$today" >> "$GITHUB_ENV"
+            echo "Typecheck falhou apos rebase limpo." >&2
             exit 1
           fi
 
@@ -84,3 +83,29 @@ jobs:
           gh workflow run release-fork-desktop.yml --ref "$tag"
 
           echo "Sync limpo: fork-main atualizada, tag ${tag} publicada e build disparado."
+
+      - name: Alarme ntfy
+        if: failure()
+        env:
+          NTFY_URL: ${{ secrets.NTFY_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "${NTFY_URL:-}" ]; then
+            echo "Alarme ntfy nao configurado (secret NTFY_URL ausente)."
+            exit 0
+          fi
+
+          export ALARM_TOPIC="${NTFY_TOPIC:-multica-fork-sync}"
+          export ALARM_REASON="${SYNC_FAIL_REASON:-Sync do fork com o upstream falhou.}"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({topic:process.env.ALARM_TOPIC,title:"Multica fork: sync com upstream falhou",message:process.env.ALARM_REASON+"\n"+process.env.RUN_URL,priority:4,tags:["rotating_light"]}))')"
+
+          code="$(printf '%s' "$payload" | curl -sS -o /dev/null -w '%{http_code}' -X POST "$NTFY_URL" \
+            -H "Content-Type: application/json" \
+            ${NTFY_TOKEN:+-H "Authorization: Bearer $NTFY_TOKEN"} \
+            --data-binary @- || echo 000)"
+
+          echo "ntfy respondeu $code"
